@@ -1,7 +1,6 @@
 package com.example.my_rxjava
 
 import android.os.Bundle
-import android.os.Looper
 import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -38,59 +37,54 @@ class MainActivity : AppCompatActivity() {
         text.text = Text.text
 
         search.doOnTextChanged { text, _, _, _ ->
+            count = 0
+
             subject.onNext(text.toString())
             Log.d("rr", text.toString())
-
-            count = 0
         }
 
-        val flowable = subject.toFlowable(BackpressureStrategy.DROP)
+        val searchFlowable = subject.toFlowable(BackpressureStrategy.DROP)
 
-        val textFlo = Flowable.fromIterable(Text.text.split(" "))
+        val textFlowable = Flowable.fromIterable(text.text.split(" "))
 
-        disposable = flowable
+        disposable = searchFlowable
             .subscribeOn(Schedulers.io())
-            .debounce(700, TimeUnit.MILLISECONDS)
+            .debounce(700L, TimeUnit.MILLISECONDS)
             .distinctUntilChanged()
             .filter { it.isNotEmpty() }
             .flatMap { substring ->
-                textFlo
+                textFlowable
                     .map { string ->
-                        Pair(
-                            substring.toLowerCase(Locale.ROOT).trim(),
-                            string.toLowerCase(Locale.ROOT).trim()
-                        )
-                    }
+                        getMatchesCounts(string, substring)
+                    }.delay(70L, TimeUnit.MILLISECONDS)
             }
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ (substring, string) ->
+            .subscribe({
 
-                getMatchesCounts(string, substring)
-
-               Log.d("dsf", "${Thread.currentThread()} ${Looper.getMainLooper().thread}")
-
+                countText.text = it.toString()
+                Log.d("324", it.toString())
             }, {
             })
-
-
     }
 
-    private fun getMatchesCounts(string: String, substring: String) {
+    private fun getMatchesCounts(string: String, substring: String): Int {
+        val stringToLowerCase = string.toLowerCase(Locale.ROOT).trim()
+        val substringToLowerCase = substring.toLowerCase(Locale.ROOT).trim()
+
         var substringCounts: Int
         var last = 0
 
         do {
-            substringCounts = string.indexOf(substring, last)
+            substringCounts = stringToLowerCase.indexOf(substringToLowerCase, last)
 
             if (substringCounts != -1) {
-                countText.text = (++count).toString()
-                Log.d("1", count.toString())
-            } else {
-                countText.text = count.toString()
+                ++count
             }
 
-            last = substringCounts + substring.length
+            last = substringCounts + substringToLowerCase.length
         } while (substringCounts != -1)
+
+        return count
     }
 
     override fun onDestroy() {
