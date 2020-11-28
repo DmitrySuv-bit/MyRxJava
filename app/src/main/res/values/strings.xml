@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">MyRxJava</string>
+    <string name="search">Поиск</string>
+    <string name="counter_text">Совпадений:</string>
+</resources>
