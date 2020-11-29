@@ -1,7 +1,6 @@
 package com.example.my_rxjava
 
 import android.os.Bundle
-import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doOnTextChanged
@@ -37,32 +36,29 @@ class MainActivity : AppCompatActivity() {
         text.text = Text.text
 
         search.doOnTextChanged { text, _, _, _ ->
-            count = 0
 
             subject.onNext(text.toString())
-            Log.d("rr", text.toString())
         }
 
-        val searchFlowable = subject.toFlowable(BackpressureStrategy.DROP)
+        val searchObservable = subject.toFlowable(BackpressureStrategy.DROP)
 
-        val textFlowable = Flowable.fromIterable(text.text.split(" "))
+        val textObservable = Flowable.fromIterable(text.text.split(" ")).delay(200L, TimeUnit.MILLISECONDS)
 
-        disposable = searchFlowable
+        disposable = searchObservable
             .subscribeOn(Schedulers.io())
             .debounce(700L, TimeUnit.MILLISECONDS)
             .distinctUntilChanged()
-            .filter { it.isNotEmpty() }
+            .filter { it.isNotEmpty()}
             .flatMap { substring ->
-                textFlowable
+                count = 0
+                textObservable
                     .map { string ->
                         getMatchesCounts(string, substring)
-                    }.delay(70L, TimeUnit.MILLISECONDS)
+                    }
             }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
-
                 countText.text = it.toString()
-                Log.d("324", it.toString())
             }, {
             })
     }
